@@ -1,7 +1,10 @@
+
+# Author: William Hunter
 # The 'classic' 60x20 2d mbb beam, as per Ole Sigmund's 99 line code.
 
 PROB_TYPE  : comp
 PROB_NAME  : beam_2d_reci
+ETA        : 0.5  # reciprocal approx.
 DOF_PN     : 2
 VOL_FRAC   : 0.5
 FILT_RAD   : 1.5
@@ -14,4 +17,6 @@ LOAD_NODE_Y: 1
 LOAD_VALU_Y: -1
 
 NUM_ITER   : 10
+
 P_FAC      : 3
+

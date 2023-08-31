@@ -1,5 +1,5 @@
 ﻿import numpy as np
-
+from scipy.sparse import coo_array
 # ========================
 # === Public functions ===
 # ========================
@@ -36,8 +36,7 @@ def _parse_dict(d):
         d['NUM_ELEM_Z'] = int(d['NUM_ELEM_Z'])
         d['DOF_PN'] = int(d['DOF_PN'])
         d['ETA'] = str(d['ETA']).lower()
-        d['ELEM_TYPE'] = d['ELEM_K']
-        d['ELEM_K'] = eval(d['ELEM_TYPE'])
+
     except:
         raise ValueError('One or more parameters incorrectly specified.')
 
@@ -130,7 +129,7 @@ def _parse_dict(d):
     # they are not specified in the ToPy problem definition file:
     Ksize = d['DOF_PN'] * (d['NUM_ELEM_X'] + 1) * (d['NUM_ELEM_Y'] + 1) * \
     (d['NUM_ELEM_Z'] + 1) #  Memory allocation hint for PySparse
-    d['K'] = spmatrix.ll_mat_sym(Ksize, Ksize) #  Global stiffness matrix
+    d['K'] = coo_array((Ksize, Ksize)) #  Global stiffness matrix
     d['E2SDOFMAPI'] =  _e2sdofmapinit(d['NUM_ELEM_X'], d['NUM_ELEM_Y'], \
     d['DOF_PN']) #  Initial element to structure DOF mapping
 
