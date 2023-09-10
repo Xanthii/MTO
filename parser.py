@@ -1,5 +1,7 @@
-﻿import numpy as np
-from scipy.sparse import coo_array
+﻿# Parse.py
+import numpy as np
+from scipy.sparse import coo_array, lil_matrix
+
 # ========================
 # === Public functions ===
 # ========================
@@ -129,7 +131,7 @@ def _parse_dict(d):
     # they are not specified in the ToPy problem definition file:
     Ksize = d['DOF_PN'] * (d['NUM_ELEM_X'] + 1) * (d['NUM_ELEM_Y'] + 1) * \
     (d['NUM_ELEM_Z'] + 1) #  Memory allocation hint for PySparse
-    d['K'] = coo_array((Ksize, Ksize)) #  Global stiffness matrix
+    d['K'] = lil_matrix((Ksize, Ksize)) #  Global stiffness matrix
     d['E2SDOFMAPI'] =  _e2sdofmapinit(d['NUM_ELEM_X'], d['NUM_ELEM_Y'], \
     d['DOF_PN']) #  Initial element to structure DOF mapping
 
@@ -248,29 +250,3 @@ def _e2sdofmapinit(nelx, nely, dofpn):
         e2s = np.r_[a, b, c, d, e, f, g, h]
     return e2s
 
-
-def _checkparams(d):
-    """
-    Does a few *very basic* checks with regards to the ToPy input parameters.
-    A message will be printed to screen *guessing* a possible problem in
-    the input data, if found.
-
-    """
-    if d['LOAD_DOF'].size != d['LOAD_VAL'].size:
-        raise ValueError('Load vector and load value vector lengths not equal.')
-    if d['LOAD_VAL'].size + d['LOAD_DOF'].size == 0:
-        raise ValueError('No load(s) or no loaded node(s) specified.')
-    # Check for rigid body motion and warn user:
-    if d['DOF_PN'] == 2:
-        if 'FXTR_NODE_X' not in d or 'FXTR_NODE_Y' not in d:
-            logger.info('\n\tToPy warning: Rigid body motion in 2D is possible!\n')
-    if d['DOF_PN'] == 3:
-        if not d.has_key('FXTR_NODE_X') or not d.has_key('FXTR_NODE_Y')\
-        or not d.has_key('FXTR_NODE_Z'):
-            logger.info('\n\tToPy warning: Rigid body motion in 3D is possible!\n')
-
-# EOF parser.py
-
-
-if __name__ == "__main__":
-    tpd_file2dict('./mmb_beam_2d_reci.tpd')
