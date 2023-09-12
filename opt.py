@@ -20,8 +20,8 @@ def optimise(topology):
         for i in range(topology.numiter):
             _optimise(topology)
             
-
-t = Topology()
-t.load_tpd_file('mmb_beam_2d_reci.tpd')
-t.set_top_params()
-optimise(t)
+if __name__ == '__main__':
+    t = Topology()
+    t.load_tpd_file('./examples/mmb_beam_3d_reci.tpd')
+    t.set_top_params()
+    optimise(t)

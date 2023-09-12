@@ -1,5 +1,5 @@
 class Material:
-    def __init__(self, Es, vs, Gs) -> None:
+    def __init__(self, Es, vs) -> None:
         self.Es = Es
         self.vs = vs
-        self.Gs = Gs
+        self.Gs = Es / (2 * (1+vs))

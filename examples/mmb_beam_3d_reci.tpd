@@ -1,0 +1,23 @@
+
+# Author: William Hunter
+# The 'classic' 60x20 2d mbb beam, as per Ole Sigmund's 99 line code.
+
+PROB_TYPE  : comp
+PROB_NAME  : beam_3d_reci
+ETA        : 0.5  # reciprocal approx.
+DOF_PN     : 3
+VOL_FRAC   : 0.4
+FILT_RAD   : 1.5
+NUM_ELEM_X : 1
+NUM_ELEM_Y : 60
+NUM_ELEM_Z : 20
+FXTR_NODE_X: 1;62
+FXTR_NODE_Y: 61|2563|61
+FXTR_NODE_Z: 1;62
+LOAD_NODE_Z: 1281; 2562
+LOAD_VALU_Z: -0.5;-0.5
+
+NUM_ITER   : 200
+
+P_FAC      : 3
+

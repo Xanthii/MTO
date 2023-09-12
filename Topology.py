@@ -1,6 +1,7 @@
 import numpy as np
 from Parser import tpd_file2dict
 from scipy.sparse.linalg import splu
+from MicroStruct import MictroSturctDict
 MAX_ITERS = 250
 
 SOLID, VOID = 1.000, 0.001 #  Upper and lower bound value for design variables
@@ -11,13 +12,14 @@ A_LOW = -3 #  Lower restriction on 'a' for exponential approximation
 A_UPP = -1e-5 #  Upper restriction on 'a' for exponential approximation
 
 class Topology:
-    def __init__(self, Es=1.0, vs=0.3, minVF=0.001,maxVF=1.,change=1) -> None:
+    def __init__(self, Es=1.0, vs=0.3, mircoType='iso',minVF=0.001,maxVF=1.,change=1) -> None:
         self.Es = Es
         self.vs = vs
         self.Gs = Es / (2*(1+vs))
         self.minVF=minVF
         self.maxVF=maxVF
         self.change = change
+        self.microStruct = MictroSturctDict[mircoType](self.Es, self.vs)
     # ======================
     # === Public methods ===
     # ======================
@@ -57,25 +59,11 @@ class Topology:
             self.numiter = MAX_ITERS
 
         # All DOF vector and design variables arrays:
-        if self.dofpn == 1:
-            if self.nelz == 0: #  *had to this
-                self.e2sdofmapi = self.e2sdofmapi[0:4]
-                self.alldof = np.arange(self.dofpn * (self.nelx + 1) * \
-                    (self.nely + 1))
-                self.desvars = np.zeros((self.nely, self.nelx)) + self.volfrac
-            else:
-                self.alldof = np.arange(self.dofpn * (self.nelx + 1) * \
-                    (self.nely + 1) * (self.nelz + 1))
-                self.desvars = np.zeros((self.nelz, self.nely, self.nelx)) + \
-                    self.volfrac
-        elif self.dofpn == 2:
-            self.alldof = np.arange(self.dofpn * (self.nelx + 1) * (self.nely + 1))
-            self.desvars = np.zeros((self.nely, self.nelx)) + self.volfrac
-        else:
-            self.alldof = np.arange(self.dofpn * (self.nelx + 1) *\
-                (self.nely + 1) * (self.nelz + 1))
-            self.desvars = np.zeros((self.nelz, self.nely, self.nelx)) + \
-                self.volfrac
+        
+        self.alldof = np.arange(self.dofpn * (self.nelx + 1) *\
+            (self.nely + 1) * (self.nelz + 1))
+        self.desvars = np.zeros((self.nelz, self.nely, self.nelx)) + \
+            self.volfrac
         
         self.df = np.zeros_like(self.desvars) #  Derivatives of obj. func. (array)
         self.freedof = np.setdiff1d(self.alldof, self.fixdof) #  Free DOF vector
@@ -202,7 +190,7 @@ class Topology:
 
     def _get_KE(self,elx,ely,elz):
         KE = np.zeros((24, 24))
-        CE = self._get_CE(elx,ely,elz)
+        CE = self.microStruct.get_CE(self.desvars[elz, ely, elx])
         GN_x = np.array([-1 / np.sqrt(3), 1 / np.sqrt(3)])
         GN_y = GN_x.copy()
         GN_z = GN_x.copy()
@@ -235,50 +223,11 @@ class Topology:
                     KE = KE + GaussWeigh[i] * GaussWeigh[j] * GaussWeigh[k] *(Be.T @ CE @ Be) / 8.
 
         return KE
-        
-    def _get_CE(self,elx,ely,elz):
-        p = self.desvars[elz, ely, elx]
-        E,v,G = self._iso_moduli(p)
-        C1111 = E * (1.0 - v) / (1.0 - v - 2*v**2)
-        C1122 = (E * v) / (1.0 - v - 2*v**2)
-        C1212 = G
-        CE = [C1111,   0,     0,     0,   C1122,   0,     0,     0,   C1122, \
-            0,   C1212,   0,   C1212,   0,     0,     0,     0,     0,  \
-            0,     0,   C1212,   0,     0,     0,   C1212,   0,     0,  \
-            0,   C1212,   0,   C1212,   0,     0,     0,     0,     0,  \
-        C1122,   0,     0,     0,   C1111,   0,     0,     0,   C1122,\
-            0,     0,     0,    0,     0,   C1212,   0,   C1212,   0,  \
-            0,     0,   C1212,   0,     0,     0,   C1212,   0,     0,  \
-            0,     0,     0 ,    0,     0,   C1212,   0,   C1212,   0,  \
-        C1122,   0,     0,     0,   C1122,  0,     0,     0,   C1111]
-        CE = np.array(CE).reshape((9,9))
-        return CE
-
-    def _iso_moduli(self, p):
-        deriv = 0
-        Es = self.Es
-        vs = self.vs
-        Gs = self.Gs
-
-        E = Es * (( 2.05292e-01 - 3.30265e-02*vs) * (p**(1-deriv)) * (1+0*deriv) + 
-	     ( 8.12145e-02 + 2.72431e-01*vs) * (p**(2-deriv)) * (1+1*deriv) +
-	     ( 6.49737e-01 - 2.42374e-01*vs) * (p**(3-deriv)) * (1+2*deriv))
-
-        v =( 2.47760e-01 + 1.69804e-02*vs) * (1-deriv) + \
-	     (-1.59293e-01 + 7.38598e-01*vs) * (p**(1-deriv)) * (1+0*deriv) + \
-	     (-1.86279e-01 - 4.83229e-01*vs) * (p**(2-deriv)) * (1+1*deriv) + \
-	     ( 9.77457e-02 + 7.26595e-01*vs) * (p**(3-deriv)) * (1+2*deriv)
-
-        G = Gs * (( 1.63200e-01 + 1.27910e-01*vs) * (p**(1-deriv)) * (1+0*deriv) + \
-	     ( 6.00810e-03 + 4.13331e-01*vs) * (p**(2-deriv)) * (1+1*deriv) + \
-	     ( 7.22847e-01 - 3.56032e-01*vs) * (p**(3-deriv)) * (1+2*deriv))
-        
-        return (E, v, G)
 
 ################# Deriv
     def _get_KE_deriv(self,elx,ely,elz):
         KE = np.zeros((24, 24))
-        CE = self._get_CE_deriv(elx,ely,elz)
+        DCE = self.microStruct.get_CE_deriv(self.desvars[elz, ely, elx])
         GN_x = np.array([-1 / np.sqrt(3), 1 / np.sqrt(3)])
         GN_y = GN_x.copy()
         GN_z = GN_x.copy()
@@ -306,55 +255,16 @@ class Topology:
                     dN[5,2:24:3] = dNy
                     dN[8,2:24:3] = dNz
                     Be = dN
-                    KE = KE + GaussWeigh[i] * GaussWeigh[j] * GaussWeigh[k] *(Be.T @ CE @ Be)
+                    KE = KE + GaussWeigh[i] * GaussWeigh[j] * GaussWeigh[k] *(Be.T @ DCE @ Be)
         return KE
         
-    def _get_CE_deriv(self,elx,ely,elz):
-        p = self.desvars[elz, ely, elx]
-        E,v,G = self._iso_moduli(p)
-        DE,Dv,DG = self._iso_moduli_deriv(p)
-        C1111 = ((DE*(1-v)-E*Dv)*(1-v-2*v**2)-E*(1-v)*(-Dv-4*v*Dv)) / (1-v-2*v**2)**2
-        C1122 = ((DE*v+E*Dv)*(1-v-2*v**2)-E*v*(-Dv-4*v*Dv)) / (1-v-2*v**2)**2
-        C1212 = DG
-        CE = [C1111,   0,     0,     0,   C1122,   0,     0,     0,   C1122, \
-            0,   C1212,   0,   C1212,   0,     0,     0,     0,     0,  \
-            0,     0,   C1212,   0,     0,     0,   C1212,   0,     0,  \
-            0,   C1212,   0,   C1212,   0,     0,     0,     0,     0,  \
-        C1122,   0,     0,     0,   C1111,   0,     0,     0,   C1122,\
-            0,     0,     0,    0,     0,   C1212,   0,   C1212,   0,  \
-            0,     0,   C1212,   0,     0,     0,   C1212,   0,     0,  \
-            0,     0,     0 ,    0,     0,   C1212,   0,   C1212,   0,  \
-        C1122,   0,     0,     0,   C1122,  0,     0,     0,   C1111]
-        CE = np.array(CE).reshape((9,9))
-        return CE
-
-    def _iso_moduli_deriv(self, p):
-        deriv = 1
-        Es = self.Es
-        vs = self.vs
-        Gs = self.Gs
-
-        E = Es * (( 2.05292e-01 - 3.30265e-02*vs) * (p**(1-deriv)) * (1+0*deriv) + 
-	     ( 8.12145e-02 + 2.72431e-01*vs) * (p**(2-deriv)) * (1+1*deriv) +
-	     ( 6.49737e-01 - 2.42374e-01*vs) * (p**(3-deriv)) * (1+2*deriv))
-
-        v =( 2.47760e-01 + 1.69804e-02*vs) * (1-deriv) + \
-	     (-1.59293e-01 + 7.38598e-01*vs) * (p**(1-deriv)) * (1+0*deriv) + \
-	     (-1.86279e-01 - 4.83229e-01*vs) * (p**(2-deriv)) * (1+1*deriv) + \
-	     ( 9.77457e-02 + 7.26595e-01*vs) * (p**(3-deriv)) * (1+2*deriv)
-
-        G = Gs * (( 1.63200e-01 + 1.27910e-01*vs) * (p**(1-deriv)) * (1+0*deriv) + \
-	     ( 6.00810e-03 + 4.13331e-01*vs) * (p**(2-deriv)) * (1+1*deriv) + \
-	     ( 7.22847e-01 - 3.56032e-01*vs) * (p**(3-deriv)) * (1+2*deriv))
-        
-        return (E, v, G)
-    
- 
 
 
 if __name__ == '__main__':
     t = Topology()
-    t.load_tpd_file('mmb_beam_2d_reci.tpd')
+    t.load_tpd_file('./examples/mmb_beam_3d_reci.tpd')
     t.set_top_params()
     t.fea()
-    print(t)
+    t.sens_analysis()
+    t.filter_sens_sigmund()
+    t.update_desvars_oc()
