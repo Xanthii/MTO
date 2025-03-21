@@ -261,10 +261,10 @@ class Topology:
 
 
 if __name__ == '__main__':
-    t = Topology()
+    t = Topology(mircoType='simp')
     t.load_tpd_file('./examples/mmb_beam_3d_reci.tpd')
     t.set_top_params()
-    t.fea()
-    t.sens_analysis()
-    t.filter_sens_sigmund()
-    t.update_desvars_oc()
+    print(t._get_KE(0,1,2))
+    # t.sens_analysis()
+    # t.filter_sens_sigmund()
+    # t.update_desvars_oc()
