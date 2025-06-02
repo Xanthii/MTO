@@ -1,0 +1,44 @@
+# ====================
+# Python 编译缓存
+__pycache__/
+*.py[cod]
+
+# Jupyter Checkpoints
+.ipynb_checkpoints/
+
+# VSCode 配置
+.vscode/
+
+# 虚拟环境文件夹（如果存在）
+.venv/
+env/
+*.env
+
+# macOS / Windows 系统文件
+.DS_Store
+Thumbs.db
+
+# 测试缓存（pytest）
+.cache/
+.pytest_cache/
+
+# 输出结果、日志、临时文件（如有）
+*.log
+*.tmp
+*.bak
+*.out
+
+# 编译型中间文件（若将来引入 C/Cython 模块）
+*.so
+*.pyd
+
+# ====================
+# 忽略测试和示例中可能生成的缓存
+examples/__pycache__/
+tests/__pycache__/
+
+# ====================
+# 保留主代码 + notebooks + examples
+!src/
+!src/mto/
+!examples/
